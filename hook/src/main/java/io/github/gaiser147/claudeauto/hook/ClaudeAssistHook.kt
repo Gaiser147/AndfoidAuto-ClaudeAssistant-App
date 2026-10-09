@@ -1,7 +1,7 @@
 package io.github.gaiser147.claudeauto.hook
 
+import android.content.Context
 import android.content.Intent
-import de.robv.android.xposed.AndroidAppHelper
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -56,7 +56,7 @@ class ClaudeAssistHook : IXposedHookLoadPackage {
      * Assistententaste des Handys. Liegt Claude dort als Standard, kommt Claude.
      */
     private fun launchDefaultAssistant(): Boolean {
-        val app = AndroidAppHelper.currentApplication() ?: run {
+        val app = currentApplication() ?: run {
             XposedBridge.log("$TAG keine Application – kann Assistent nicht starten")
             return false
         }
@@ -75,6 +75,18 @@ class ClaudeAssistHook : IXposedHookLoadPackage {
         }
         XposedBridge.log("$TAG kein Assistent-Intent ließ sich auflösen")
         return false
+    }
+
+    /**
+     * Liefert den Application-Context des Android-Auto-Prozesses. LSPosed stellt [AndroidAppHelper]
+     * in diesem Build nicht bereit, deshalb über die Framework-Klasse ActivityThread per Reflection.
+     */
+    private fun currentApplication(): Context? = try {
+        val activityThread = Class.forName("android.app.ActivityThread")
+        activityThread.getMethod("currentApplication").invoke(null) as? Context
+    } catch (t: Throwable) {
+        XposedBridge.log("$TAG ActivityThread.currentApplication fehlgeschlagen: ${t.message}")
+        null
     }
 
     private companion object {

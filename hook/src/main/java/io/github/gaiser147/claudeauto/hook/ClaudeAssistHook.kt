@@ -59,21 +59,26 @@ class ClaudeAssistHook : IXposedHookLoadPackage {
      */
     private fun triggerDefaultAssistant() {
         Thread {
-            for (keycode in ASSIST_KEYCODES) {
-                if (runAsRoot("input keyevent $keycode")) {
-                    XposedBridge.log("$TAG KEYCODE $keycode gesendet – Standard-Assistent sollte starten")
-                    return@Thread
-                }
+            // Erst laufende Medien pausieren (wie Gemini), sonst blockiert Claudes Sprachmodus mit
+            // „Pausiert, während eine andere App Audio verwendet". Danach KEYCODE_ASSIST wie der Power-Knopf.
+            val script = buildList {
+                add("input keyevent $KEYCODE_MEDIA_PAUSE")
+                add("sleep 0.4")
+                add("input keyevent $KEYCODE_ASSIST")
+            }.joinToString("\n")
+            if (runAsRoot(script)) {
+                XposedBridge.log("$TAG Medien pausiert + KEYCODE_ASSIST gesendet")
+            } else {
+                XposedBridge.log("$TAG Injektion fehlgeschlagen – Android Auto in Magisk Root gewähren")
             }
-            XposedBridge.log("$TAG Injektion fehlgeschlagen – Android Auto in Magisk Root gewähren")
         }.start()
     }
 
-    /** Führt ein Kommando als Root aus. Gibt true bei Exit-Code 0 zurück. */
-    private fun runAsRoot(command: String): Boolean = try {
+    /** Führt ein (mehrzeiliges) Skript als Root aus. Gibt true bei Exit-Code 0 zurück. */
+    private fun runAsRoot(script: String): Boolean = try {
         val process = Runtime.getRuntime().exec("su")
         DataOutputStream(process.outputStream).use { out ->
-            out.writeBytes("$command\n")
+            out.writeBytes("$script\n")
             out.writeBytes("exit\n")
             out.flush()
         }
@@ -91,7 +96,7 @@ class ClaudeAssistHook : IXposedHookLoadPackage {
         const val ASSISTANT_CONTROLLER_CLASS = "tfl"
         const val START_SESSION_METHOD = "k"
 
-        // KEYCODE_ASSIST (219) löst den Standard-Assistenten aus; KEYCODE_VOICE_ASSIST (231) als Rückfall.
-        val ASSIST_KEYCODES = intArrayOf(219, 231)
+        const val KEYCODE_ASSIST = 219
+        const val KEYCODE_MEDIA_PAUSE = 127
     }
 }

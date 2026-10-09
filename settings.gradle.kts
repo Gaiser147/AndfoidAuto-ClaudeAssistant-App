@@ -16,3 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "ClaudeAuto"
 include(":app")
+include(":xposedapi")
+include(":hook")

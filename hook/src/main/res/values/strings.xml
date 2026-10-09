@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="module_name">Claude-Assistent für AA (Hook)</string>
+    <string name="module_description">Leitet die Sprach-/Lenkradtaste in Android Auto auf den Standard-Assistenten (Claude) um statt auf Google/Gemini.</string>
+    <string name="scope_label">Android Auto</string>
+</resources>

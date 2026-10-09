@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="false"
+        android:label="@string/module_name"
+        android:icon="@mipmap/ic_launcher"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault.DayNight">
+
+        <!-- Kennzeichnet das APK als Xposed-/LSPosed-Modul. -->
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="@string/module_description" />
+        <!-- Xposed-API-Level 82 ist die Basis-API, die LSPosed bereitstellt. -->
+        <meta-data
+            android:name="xposedminversion"
+            android:value="82" />
+        <!-- LSPosed aktiviert das Modul nur für Android Auto. -->
+        <meta-data
+            android:name="xposedscope"
+            android:resource="@array/xposed_scope" />
+
+        <!-- Info-Activity; die eigentliche Arbeit macht der Hook im Android-Auto-Prozess. -->
+        <activity
+            android:name=".HookInfoActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

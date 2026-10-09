@@ -109,7 +109,44 @@ app/src/main/java/io/github/gaiser147/claudeauto/
     ├── CarSpeechInput.kt           CarAudioRecord → Pipe → SpeechRecognizer
     ├── MicrophonePermission.kt     RECORD_AUDIO prüfen/anfragen über CarContext
     └── AudioFocus.kt               exklusiver Audio-Focus während der Aufnahme
+
+hook/                               LSPosed-Modul (eigenes APK)
+└── src/main/java/.../hook/
+    ├── ClaudeAssistHook.kt         hookt Android Auto, leitet die Sprachtaste auf den Standard-Assistenten um
+    └── HookInfoActivity.kt         Infobildschirm mit Einrichtungsanleitung
+
+xposedapi/                          Xposed-API-Stubs (compileOnly, nicht im APK; LSPosed liefert die echten zur Laufzeit)
 ```
+
+## Lenkradtaste umleiten (LSPosed-Modul, optional)
+
+> Nur für ein gerootetes Handy mit Magisk + LSPosed. Eingriff in die Android-Auto-App, daher
+> grundsätzlich fragil und an die AA-Version gebunden.
+
+Die Sprach-/Lenkradtaste in Android Auto ist fest mit Google/Gemini verdrahtet; eine normale App
+kann sie nicht abfangen. Das Modul `hook/` fängt den Auslöser **im Android-Auto-Prozess** ab und
+startet stattdessen den Standard-Assistenten des Handys (`ACTION_VOICE_COMMAND`), also bei
+entsprechender Einstellung Claude.
+
+**Voraussetzung, die du zuerst prüfen solltest:** Läuft Claudes Sprachmodus überhaupt, während
+Android Auto aktiv ist, und kommt der Ton aus den Autolautsprechern? Teste das einmal, indem du bei
+verbundenem AA den Power-Knopf (Standard-Assistent) drückst. Klappt das nicht, bringt der Hook nichts.
+
+**Gefunden per statischer Analyse von AA 17.7.663654:** Die Taste kommt als Key-Event mit Keycode
+`VOICE_ASSIST`; die obfuskierte Klasse `tfl` startet die Session über Methode `k` (Callback `tfk`,
+„Error starting assistant session"). Diese Namen gelten **nur für diese AA-Version** und brechen bei
+Updates — dann im LSPosed-Log `[ClaudeAA] Hook fehlgeschlagen` und die Stelle muss neu ermittelt
+werden. Automatische Updates für Android Auto im Play Store deshalb abschalten.
+
+**Einrichtung:**
+1. `./gradlew :hook:assembleDebug` → `hook/build/outputs/apk/debug/hook-debug.apk` installieren.
+2. In LSPosed das Modul aktivieren, Anwendungsbereich **nur** Android Auto.
+3. Android Auto zwangsstoppen (oder Handy neu starten).
+4. Im LSPosed-Log nach `[ClaudeAA]` suchen: `Hook ... gesetzt` heißt, die Stelle wurde gefunden;
+   `Assistent-Auslöser erkannt` erscheint beim Druck auf die Taste.
+
+**Zuerst in der Desktop Head Unit testen, nicht während der Fahrt.** Rechtlich: Eingriff in fremde
+App auf dem eigenen Gerät; verstößt gegen Googles Nutzungsbedingungen.
 
 ### Designentscheidungen
 

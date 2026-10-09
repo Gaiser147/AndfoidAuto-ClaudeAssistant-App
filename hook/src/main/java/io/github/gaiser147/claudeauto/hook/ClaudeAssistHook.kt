@@ -2,6 +2,7 @@ package io.github.gaiser147.claudeauto.hook
 
 import android.content.Context
 import android.content.Intent
+import android.provider.Settings
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -60,21 +61,51 @@ class ClaudeAssistHook : IXposedHookLoadPackage {
             XposedBridge.log("$TAG keine Application – kann Assistent nicht starten")
             return false
         }
-        for (action in ASSIST_ACTIONS) {
-            try {
-                val intent = Intent(action).addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS,
-                )
-                if (intent.resolveActivity(app.packageManager) == null) continue
-                app.startActivity(intent)
-                XposedBridge.log("$TAG Assistent gestartet via $action")
-                return true
-            } catch (t: Throwable) {
-                XposedBridge.log("$TAG $action fehlgeschlagen: ${t.message}")
+        val assistantPkg = defaultAssistantPackage(app)
+        XposedBridge.log("$TAG Standard-Assistent-Paket: ${assistantPkg ?: "unbekannt"}")
+
+        // ACTION_VOICE_COMMAND zeigt einen Auswahldialog aller Sprach-Apps (und enthält Claude nicht).
+        // Deshalb den Assistenten der System-Rolle gezielt über ACTION_ASSIST ansteuern.
+        val attempts = buildList {
+            // 1) ACTION_ASSIST gezielt an das Standard-Assistenten-Paket (kein Dialog).
+            if (assistantPkg != null) add(Intent(Intent.ACTION_ASSIST).setPackage(assistantPkg))
+            // 2) ACTION_ASSIST ohne Paket – das System leitet zum Rolleninhaber.
+            add(Intent(Intent.ACTION_ASSIST))
+            // 3) Rückfall: normaler Start des Assistenten-Pakets.
+            if (assistantPkg != null) {
+                app.packageManager.getLaunchIntentForPackage(assistantPkg)?.let { add(it) }
             }
         }
-        XposedBridge.log("$TAG kein Assistent-Intent ließ sich auflösen")
+        for (intent in attempts) {
+            if (tryStart(app, intent)) return true
+        }
+        XposedBridge.log("$TAG kein Assistent ließ sich starten")
         return false
+    }
+
+    private fun tryStart(app: Context, intent: Intent): Boolean = try {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
+        val label = "${intent.action ?: "LAUNCH"} pkg=${intent.`package` ?: "-"}"
+        if (intent.resolveActivity(app.packageManager) == null) {
+            XposedBridge.log("$TAG nicht auflösbar: $label")
+            false
+        } else {
+            app.startActivity(intent)
+            XposedBridge.log("$TAG Assistent gestartet: $label")
+            true
+        }
+    } catch (t: Throwable) {
+        XposedBridge.log("$TAG Start fehlgeschlagen: ${t.message}")
+        false
+    }
+
+    /** Liest das als Standard-Assistent gesetzte Paket aus den Systemeinstellungen. */
+    private fun defaultAssistantPackage(app: Context): String? {
+        for (key in listOf("assistant", "voice_interaction_service")) {
+            val value = Settings.Secure.getString(app.contentResolver, key)
+            if (!value.isNullOrBlank()) return value.substringBefore('/')
+        }
+        return null
     }
 
     /**
@@ -96,11 +127,5 @@ class ClaudeAssistHook : IXposedHookLoadPackage {
         // Obfuskierte Namen aus AA 17.7.663654 – bei Updates neu ermitteln.
         const val ASSISTANT_CONTROLLER_CLASS = "tfl"
         const val START_SESSION_METHOD = "k"
-
-        // ACTION_VOICE_COMMAND entspricht dem Assistenten-Knopf; ASSIST als Rückfall.
-        val ASSIST_ACTIONS = listOf(
-            Intent.ACTION_VOICE_COMMAND,
-            Intent.ACTION_ASSIST,
-        )
     }
 }

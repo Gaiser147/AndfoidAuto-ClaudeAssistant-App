@@ -11,15 +11,29 @@ installiert nur privat und in AA über „Unbekannte Quellen“ sichtbar.
 | Phase | Inhalt | Status |
 |---|---|---|
 | 0 | Setup: Android Studio, DHU, AA-Entwicklermodus | ✅ Anleitung unten |
-| 1 | Grundgerüst: `CarAppService`, `Session`, `Screen`, Mikrofon-/Stopp-Button, Statusanzeige | ✅ (Demo-Ablauf ohne echte Funktion) |
-| 2 | Spracheingabe: `CarAudioRecord` → `SpeechRecognizer` (`EXTRA_AUDIO_SOURCE`, Android 13+) | offen |
+| 1 | Grundgerüst: `CarAppService`, `Session`, `Screen`, Mikrofon-/Stopp-Button, Statusanzeige | ✅ |
+| 2 | Spracheingabe: `CarAudioRecord` → `SpeechRecognizer` (`EXTRA_AUDIO_SOURCE`, Android 13+) | ✅ zeigt den erkannten Text an |
 | 3 | Claude-Anbindung: Messages API mit Streaming, Systemprompt, Key im Android Keystore | offen |
 | 4 | Sprachausgabe: `TextToSpeech` satzweise, Audio-Focus, Stopp | offen |
 | 5 | Feinschliff: automatische Rückfrage, Fehlerfälle, Verlauf speichern | offen |
 | 6 | Optional: Tool-Use (Navigation, Kalender) | offen |
 
-In Phase 1 spielt der Mikrofon-Button nur die Zustände **Bereit → Hört zu → Denkt nach → Spricht → Bereit**
-mit festen Wartezeiten durch, damit sich Oberfläche und Stopp-Button in der Desktop Head Unit testen lassen.
+Aktuell: Mikrofon-Button antippen → die App hört über das Automikrofon zu, zeigt während des Sprechens
+Zwischenergebnisse und am Ende den erkannten Text. Ab Phase 3 geht dieser Text an Claude.
+
+### Spracheingabe (Phase 2)
+
+- `CarAudioRecord` liefert 16 kHz, mono, PCM 16 Bit. Ein Hintergrund-Thread schreibt das in eine Pipe,
+  deren Leseende per `EXTRA_AUDIO_SOURCE` an den `SpeechRecognizer` geht.
+- Die Aufnahme endet, sobald der Erkenner das Sprechende meldet, nach spätestens 15 Sekunden,
+  per Stopp-Button oder wenn das Auto das Mikrofon schließt.
+- Bevorzugt wird der On-Device-Erkenner auf Deutsch (`de-DE`). Scheitert er, z. B. weil das deutsche
+  Offline-Paket fehlt, nutzt die App für den Rest der Fahrt den Standard-Erkenner (meist Google, online).
+  Tipp: In den Android-Einstellungen unter *System → Sprache → Spracherkennung auf dem Gerät*
+  (Bezeichnung je nach Hersteller) Deutsch herunterladen.
+- Während der Aufnahme hält die App exklusiven Audio-Focus, Musik pausiert also.
+- Das Mikrofonrecht fragt die App beim ersten Öffnen auf dem Handy an. Fehlt es, kommt die Abfrage beim
+  ersten Tippen im Auto auf dem Handy.
 
 ## Phase 0: Setup
 
@@ -66,8 +80,8 @@ adb forward tcp:5277 tcp:5277
 $ANDROID_HOME/extras/google/auto/desktop-head-unit
 ```
 
-Im DHU-Launcher erscheint **Claude Assistent**. Antippen → Mikrofon-Button → Statusanzeige läuft durch,
-Stopp bricht ab.
+Im DHU-Launcher erscheint **Claude Assistent**. Antippen → Mikrofon-Button → ins PC-Mikrofon sprechen.
+Die DHU leitet das PC-Mikrofon als Automikrofon weiter. Stopp bricht ab.
 
 Im echten Auto taucht die App nach der Installation im AA-Launcher auf, solange „Unbekannte Quellen“ aktiv ist.
 
@@ -81,14 +95,20 @@ sondern wird in Phase 3 in der App eingegeben und mit dem Android Keystore versc
 
 ```
 app/src/main/java/io/github/gaiser147/claudeauto/
-├── MainActivity.kt                 Handy-Bildschirm (Hinweise, später Einstellungen)
-└── car/
-    ├── ClaudeCarAppService.kt      Einstieg für Android Auto, HostValidator
-    ├── AssistantSession.kt         eine Verbindung zum Auto (≈ eine Fahrt)
-    ├── AssistantScreen.kt          PaneTemplate mit Status und Sprechen-/Stopp-Button
-    ├── AssistantStatus.kt          Bereit / Hört zu / Denkt nach / Spricht
-    ├── AssistantController.kt      Schnittstelle für einen Gesprächsdurchlauf
-    └── DemoAssistantController.kt  Phase-1-Platzhalter, wird ab Phase 2 ersetzt
+├── MainActivity.kt                 Handy-Bildschirm: Hinweise, Mikrofonrecht
+├── car/
+│   ├── ClaudeCarAppService.kt      Einstieg für Android Auto, HostValidator
+│   ├── AssistantSession.kt         eine Verbindung zum Auto (≈ eine Fahrt), verdrahtet alles
+│   ├── AssistantScreen.kt          PaneTemplate mit Status, Text und Sprechen-/Stopp-Button
+│   ├── AssistantStatus.kt          Bereit / Hört zu / Denkt nach / Spricht
+│   ├── AssistantUiState.kt         Status + erkannter Text / Hinweis
+│   ├── AssistantController.kt      Schnittstelle für einen Gesprächsdurchlauf
+│   └── VoiceAssistantController.kt Ablauf: Mikrofonrecht → Zuhören → Ergebnis
+└── voice/
+    ├── SpeechInput.kt              Schnittstelle + Fehlerarten der Spracheingabe
+    ├── CarSpeechInput.kt           CarAudioRecord → Pipe → SpeechRecognizer
+    ├── MicrophonePermission.kt     RECORD_AUDIO prüfen/anfragen über CarContext
+    └── AudioFocus.kt               exklusiver Audio-Focus während der Aufnahme
 ```
 
 ### Designentscheidungen
@@ -99,9 +119,9 @@ app/src/main/java/io/github/gaiser147/claudeauto/
   Beim `MessageTemplate` zählt jede Textänderung als neuer Bildschirm, beim `PaneTemplate` nur eine
   Änderung von Titel oder Zeilentiteln. Deshalb bleibt der Zeilentitel fest („Status“) und nur der
   Text darunter wechselt.
-- **`AssistantController` als Schnittstelle:** Phase 2–4 liefern eine echte Implementierung,
-  `AssistantScreen` muss dafür nicht angefasst werden.
+- **Schnittstellen für Mikrofonrecht und Spracheingabe:** `VoiceAssistantController` ist dadurch
+  ohne Gerät unit-testbar (`./gradlew testDebugUnitTest`). Phase 3/4 hängen Claude und TTS an dieselbe Stelle.
 - **HostValidator:** Debug-Builds akzeptieren jeden Host (nötig für die DHU), Release-Builds nur die
   signierte Android-Auto-App.
 - **minSdk 29 (Android 10):** Die App läuft ab Android 10, die Spracheingabe über das Automikrofon
-  wird ab Phase 2 aber Android 13+ voraussetzen.
+  braucht aber Android 13+. Darunter zeigt die App einen Hinweis statt abzustürzen.

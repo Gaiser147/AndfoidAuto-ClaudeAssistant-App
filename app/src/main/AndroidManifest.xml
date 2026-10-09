@@ -2,6 +2,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Für CarAudioRecord (Automikrofon) und den SpeechRecognizer. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Ab Android 11 nötig, damit die App die Spracherkennungsdienste des Handys sehen kann. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <!-- allowBackup=false deckt Android 10/11 ab, dataExtractionRules Android 12+. -->
     <application
         android:allowBackup="false"
@@ -33,7 +43,7 @@
             </intent-filter>
         </service>
 
-        <!-- Handy-Seite: vorerst nur ein Infobildschirm, später Einstellungen (API-Key, Mikrofonrecht). -->
+        <!-- Handy-Seite: Hinweise und Mikrofonrecht, später auch der API-Key. -->
         <activity
             android:name=".MainActivity"
             android:exported="true">

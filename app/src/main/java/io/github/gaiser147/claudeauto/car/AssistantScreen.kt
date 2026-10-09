@@ -38,7 +38,7 @@ class AssistantScreen(
     init {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                controller.status.collect { invalidate() }
+                controller.state.collect { invalidate() }
             }
         }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -47,14 +47,15 @@ class AssistantScreen(
     }
 
     override fun onGetTemplate(): Template {
-        val status = controller.status.value
+        val state = controller.state.value
+        val status = state.status
 
         val pane = Pane.Builder()
             .addRow(
                 Row.Builder()
                     .setTitle(carContext.getString(R.string.status_title))
                     .addText(carContext.getString(status.label))
-                    .addText(carContext.getString(if (status.isBusy) R.string.hint_busy else R.string.hint_idle))
+                    .addText(detailText(state))
                     .build()
             )
             .setImage(icon(if (status.isBusy) R.drawable.ic_stop else R.drawable.ic_mic))
@@ -74,6 +75,13 @@ class AssistantScreen(
             builder.setTitle(carContext.getString(R.string.app_name)).setHeaderAction(Action.APP_ICON)
         }
         return builder.build()
+    }
+
+    private fun detailText(state: AssistantUiState): String = when {
+        state.transcript != null -> carContext.getString(R.string.transcript_quoted, state.transcript)
+        state.info != null -> carContext.getString(state.info)
+        state.status.isBusy -> carContext.getString(R.string.hint_busy)
+        else -> carContext.getString(R.string.hint_idle)
     }
 
     private fun talkAction(): Action = Action.Builder()

@@ -2,15 +2,9 @@ package io.github.gaiser147.claudeauto.car
 
 import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Steuert einen Gesprächsdurchlauf: Zuhören → Nachdenken → Sprechen.
- *
- * Phase 1 nutzt [DemoAssistantController]. Ab Phase 2–4 kommt hier die echte Implementierung
- * (CarAudioRecord + SpeechRecognizer, Claude Messages API, TextToSpeech) hinein; der Screen
- * bleibt dabei unverändert.
- */
+/** Steuert einen Gesprächsdurchlauf: Zuhören → Nachdenken → Sprechen. */
 interface AssistantController {
-    val status: StateFlow<AssistantStatus>
+    val state: StateFlow<AssistantUiState>
 
     /** Startet einen neuen Durchlauf. Wird ignoriert, solange einer läuft. */
     fun start()

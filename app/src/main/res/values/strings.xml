@@ -11,8 +11,21 @@
     <string name="hint_idle">Tippe auf das Mikrofon und stell deine Frage.</string>
     <string name="hint_busy">Mit Stopp abbrechen.</string>
 
+    <string name="transcript_quoted">„%1$s“</string>
+
+    <string name="info_permission_on_phone">Bitte auf dem Handy den Mikrofonzugriff erlauben.</string>
+    <string name="error_permission">Kein Mikrofonzugriff. Bitte in den App-Einstellungen auf dem Handy erlauben.</string>
+    <string name="error_microphone">Das Automikrofon ist gerade nicht verfügbar.</string>
+    <string name="error_no_match">Nichts verstanden. Bitte noch einmal.</string>
+    <string name="error_not_supported">Spracheingabe im Auto braucht Android 13 oder neuer.</string>
+    <string name="error_recognizer_unavailable">Keine Spracherkennung auf dem Handy gefunden.</string>
+    <string name="error_network">Spracherkennung nicht erreichbar. Netz prüfen.</string>
+    <string name="error_language">Deutsch ist in der Spracherkennung nicht verfügbar.</string>
+    <string name="error_busy">Spracherkennung ist beschäftigt. Gleich noch einmal versuchen.</string>
+    <string name="error_speech">Spracherkennung fehlgeschlagen.</string>
+
     <string name="action_talk">Sprechen</string>
     <string name="action_stop">Stopp</string>
 
-    <string name="phone_info">Diese App läuft in Android Auto.\n\nEinrichtung:\n1. Android Auto → Einstellungen → mehrfach auf „Version“ tippen → Entwicklermodus.\n2. Im Entwicklermenü „Unbekannte Quellen“ aktivieren.\n3. Zum Testen am PC: „Head-Unit-Server starten“ und die Desktop Head Unit verbinden.\n\nAPI-Key und Mikrofonrecht werden in einer späteren Version hier eingerichtet.</string>
+    <string name="phone_info">Diese App läuft in Android Auto.\n\nEinrichtung:\n1. Android Auto → Einstellungen → mehrfach auf „Version“ tippen → Entwicklermodus.\n2. Im Entwicklermenü „Unbekannte Quellen“ aktivieren.\n3. Zum Testen am PC: „Head-Unit-Server starten“ und die Desktop Head Unit verbinden.\n\nBeim ersten Start fragt die App nach dem Mikrofonzugriff, damit sie im Auto zuhören kann. Der API-Key wird in einer späteren Version hier eingerichtet.</string>
 </resources>

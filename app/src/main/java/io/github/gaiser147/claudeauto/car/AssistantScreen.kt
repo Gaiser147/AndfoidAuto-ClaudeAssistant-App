@@ -42,6 +42,8 @@ class AssistantScreen(
             }
         }
         lifecycle.addObserver(object : DefaultLifecycleObserver {
+            // Jedes Öffnen der App in Android Auto startet sofort das Zuhören.
+            override fun onStart(owner: LifecycleOwner) = controller.start()
             override fun onDestroy(owner: LifecycleOwner) = controller.stop()
         })
     }

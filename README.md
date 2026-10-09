@@ -18,7 +18,7 @@ installiert nur privat und in AA über „Unbekannte Quellen“ sichtbar.
 | 5 | Feinschliff: automatische Rückfrage, Fehlerfälle, Verlauf speichern | offen |
 | 6 | Optional: Tool-Use (Navigation, Kalender) | offen |
 
-Aktuell: Mikrofon-Button antippen → die App hört über das Automikrofon zu, zeigt während des Sprechens
+Aktuell: App in Android Auto öffnen (oder Mikrofon-Button antippen) → die App hört sofort über das Automikrofon zu, zeigt während des Sprechens
 Zwischenergebnisse und am Ende den erkannten Text. Ab Phase 3 geht dieser Text an Claude.
 
 ### Spracheingabe (Phase 2)

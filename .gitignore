@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+.kotlin/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Lokale Konfiguration (SDK-Pfad, ggf. API-Key) – niemals committen
+local.properties
+*.keystore
+*.jks
+
+# OS
+.DS_Store

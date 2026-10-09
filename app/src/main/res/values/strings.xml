@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Claude Assistent</string>
+
+    <string name="status_title">Status</string>
+    <string name="status_idle">Bereit</string>
+    <string name="status_listening">Hört zu …</string>
+    <string name="status_thinking">Denkt nach …</string>
+    <string name="status_speaking">Spricht …</string>
+
+    <string name="hint_idle">Tippe auf das Mikrofon und stell deine Frage.</string>
+    <string name="hint_busy">Mit Stopp abbrechen.</string>
+
+    <string name="action_talk">Sprechen</string>
+    <string name="action_stop">Stopp</string>
+
+    <string name="phone_info">Diese App läuft in Android Auto.\n\nEinrichtung:\n1. Android Auto → Einstellungen → mehrfach auf „Version“ tippen → Entwicklermodus.\n2. Im Entwicklermenü „Unbekannte Quellen“ aktivieren.\n3. Zum Testen am PC: „Head-Unit-Server starten“ und die Desktop Head Unit verbinden.\n\nAPI-Key und Mikrofonrecht werden in einer späteren Version hier eingerichtet.</string>
+</resources>

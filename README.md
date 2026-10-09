@@ -124,16 +124,23 @@ xposedapi/                          Xposed-API-Stubs (compileOnly, nicht im APK;
 > grundsätzlich fragil und an die AA-Version gebunden.
 
 Die Sprach-/Lenkradtaste in Android Auto ist fest mit Google/Gemini verdrahtet; eine normale App
-kann sie nicht abfangen. Das Modul `hook/` fängt den Auslöser **im Android-Auto-Prozess** ab und
-startet stattdessen den Standard-Assistenten des Handys (`ACTION_VOICE_COMMAND`), also bei
-entsprechender Einstellung Claude.
+kann sie nicht abfangen. Das Modul `hook/` fängt den Auslöser **im Android-Auto-Prozess** ab,
+unterdrückt den Google-Start und löst stattdessen den Standard-Assistenten des Handys aus.
 
-**Voraussetzung, die du zuerst prüfen solltest:** Läuft Claudes Sprachmodus überhaupt, während
-Android Auto aktiv ist, und kommt der Ton aus den Autolautsprechern? Teste das einmal, indem du bei
-verbundenem AA den Power-Knopf (Standard-Assistent) drückst. Klappt das nicht, bringt der Hook nichts.
+**Warum per Tastendruck-Injektion statt Intent:** Claude ist als VoiceInteractionService eingebunden
+(`com.anthropic.claude/.bell.assist.ClaudeVoiceInteractionService`), nicht als Activity. So ein Dienst
+lässt sich nicht per Intent starten — ihn ruft nur das System über den Assistenten-Mechanismus auf.
+Der Hook bildet deshalb den Assistenten-Tastendruck nach: er injiziert `KEYCODE_ASSIST` (219, Rückfall
+`KEYCODE_VOICE_ASSIST` 231) per Root (`su input keyevent …`), exakt wie der Power-Knopf. Android
+startet daraufhin den eingestellten Standard-Assistenten (Claude). Welches Paket das ist, steht in
+`settings get secure assistant`.
+
+**Voraussetzung, die zuerst feststehen muss:** Claudes Sprachmodus läuft auch, während Android Auto
+aktiv ist, und der Ton kommt aus den Autolautsprechern. Mit dem Power-Knopf bei verbundenem AA getestet
+und bestätigt (AA behandelt es als Anruf über die Freisprechanlage).
 
 **Gefunden per statischer Analyse von AA 17.7.663654:** Die Taste kommt als Key-Event mit Keycode
-`VOICE_ASSIST`; die obfuskierte Klasse `tfl` startet die Session über Methode `k` (Callback `tfk`,
+`VOICE_ASSIST` an; die obfuskierte Klasse `tfl` startet die Session über Methode `k` (Callback `tfk`,
 „Error starting assistant session"). Diese Namen gelten **nur für diese AA-Version** und brechen bei
 Updates — dann im LSPosed-Log `[ClaudeAA] Hook fehlgeschlagen` und die Stelle muss neu ermittelt
 werden. Automatische Updates für Android Auto im Play Store deshalb abschalten.
@@ -142,8 +149,10 @@ werden. Automatische Updates für Android Auto im Play Store deshalb abschalten.
 1. `./gradlew :hook:assembleDebug` → `hook/build/outputs/apk/debug/hook-debug.apk` installieren.
 2. In LSPosed das Modul aktivieren, Anwendungsbereich **nur** Android Auto.
 3. Android Auto zwangsstoppen (oder Handy neu starten).
-4. Im LSPosed-Log nach `[ClaudeAA]` suchen: `Hook ... gesetzt` heißt, die Stelle wurde gefunden;
-   `Assistent-Auslöser erkannt` erscheint beim Druck auf die Taste.
+4. **In Magisk Android Auto Root gewähren** (`com.google.android.projection.gearhead`). Beim ersten
+   Tastendruck erscheint die Magisk-Abfrage; mit „Für immer zulassen" bestätigen.
+5. Im LSPosed-Log nach `[ClaudeAA]` suchen: `Hook ... gesetzt` heißt, die Stelle wurde gefunden;
+   `Auslöser erkannt` und `KEYCODE 219 gesendet` erscheinen beim Druck auf die Taste.
 
 **Zuerst in der Desktop Head Unit testen, nicht während der Fahrt.** Rechtlich: Eingriff in fremde
 App auf dem eigenen Gerät; verstößt gegen Googles Nutzungsbedingungen.
